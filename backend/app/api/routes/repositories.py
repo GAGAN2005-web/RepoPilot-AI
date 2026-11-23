@@ -4,11 +4,7 @@ from app.schemas.repository import RepositoryRequest, RepositoryInfo
 from app.services.github_service import GitHubService
 
 
-router = APIRouter(
-    prefix="/repositories",
-    tags=["Repositories"],
-)
-
+router = APIRouter(prefix="/repositories", tags=["Repositories"])
 
 github_service = GitHubService()
 
@@ -20,15 +16,34 @@ async def get_repository(request: RepositoryRequest):
     owner = parts[-2]
     name = parts[-1]
 
+    # GitHub URLs may end with .git
+    if name.endswith(".git"):
+        name = name[:-4]
+
     try:
         repository = await github_service.get_repository(
             owner=owner,
             repository=name,
         )
+
     except ValueError as error:
+        message = str(error)
+
+        if "not found" in message.lower():
+            raise HTTPException(
+                status_code=404,
+                detail=message,
+            ) from error
+
+        if "rate limit" in message.lower():
+            raise HTTPException(
+                status_code=429,
+                detail=message,
+            ) from error
+
         raise HTTPException(
-            status_code=404,
-            detail=str(error),
+            status_code=502,
+            detail=message,
         ) from error
 
     return RepositoryInfo(

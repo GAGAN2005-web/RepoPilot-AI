@@ -1,5 +1,6 @@
-from pydantic import BaseModel, field_validator
 from urllib.parse import urlparse
+
+from pydantic import BaseModel, field_validator
 
 
 class RepositoryRequest(BaseModel):
@@ -10,15 +11,15 @@ class RepositoryRequest(BaseModel):
     def validate_github_url(cls, value: str) -> str:
         value = value.strip()
 
-        parsed_url = urlparse(value)
+        parsed = urlparse(value)
 
-        if parsed_url.scheme != "https":
-            raise ValueError("GitHub URL must use HTTPS")
+        if parsed.scheme != "https":
+            raise ValueError("Repository URL must use HTTPS")
 
-        if parsed_url.netloc.lower() != "github.com":
+        if parsed.netloc.lower() != "github.com":
             raise ValueError("URL must be a GitHub repository URL")
 
-        parts = [part for part in parsed_url.path.split("/") if part]
+        parts = [part for part in parsed.path.split("/") if part]
 
         if len(parts) != 2:
             raise ValueError(

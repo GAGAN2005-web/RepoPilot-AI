@@ -1,20 +1,50 @@
 import httpx
 
+from app.core.configure import settings
+
 
 class GitHubService:
     BASE_URL = "https://api.github.com"
 
+    def __init__(self):
+        self.headers = {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        if settings.github_token:
+            self.headers["Authorization"] = f"Bearer {settings.github_token}"
+
     async def get_repository(self, owner: str, repository: str) -> dict:
         url = f"{self.BASE_URL}/repos/{owner}/{repository}"
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url)
+        try:
+            async with httpx.AsyncClient(
+                timeout=10.0,
+                headers=self.headers,
+            ) as client:
+                response = await client.get(url)
+
+        except httpx.TimeoutException as error:
+            raise ValueError(
+                "GitHub API request timed out"
+            ) from error
+
+        except httpx.RequestError as error:
+            raise ValueError(
+                "Unable to connect to GitHub API"
+            ) from error
 
         if response.status_code == 404:
             raise ValueError("GitHub repository not found")
 
         if response.status_code == 403:
-            raise ValueError("GitHub API rate limit exceeded or access denied")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+
+            if remaining == "0":
+                raise ValueError("GitHub API rate limit exceeded")
+
+            raise ValueError("GitHub API access denied")
 
         if response.status_code != 200:
             raise ValueError(
