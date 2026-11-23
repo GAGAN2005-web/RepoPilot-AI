@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 
+from app.api.routes.health import router as health_router
+from app.core.configure import settings
+
+
 app = FastAPI(
-    title="RepoPilot AI",
+    title=settings.app_name,
     description="AI-powered GitHub repository understanding and engineering assistant",
-    version="0.1.0",
+    version=settings.app_version,
 )
 
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok",
-        "project": "RepoPilot AI",
-    }
+app.include_router(health_router)
