@@ -1,3 +1,5 @@
+import base64
+
 import httpx
 
 from app.core.configure import settings
@@ -46,7 +48,9 @@ class GitHubService:
             remaining = response.headers.get("X-RateLimit-Remaining")
 
             if remaining == "0":
-                raise ValueError("GitHub API rate limit exceeded")
+                raise ValueError(
+                    "GitHub API rate limit exceeded"
+                )
 
             raise ValueError("GitHub API access denied")
 
@@ -118,3 +122,81 @@ class GitHubService:
         data = response.json()
 
         return data.get("tree", [])
+
+    async def get_file_content(
+        self,
+        owner: str,
+        repository: str,
+        path: str,
+        branch: str,
+    ) -> str:
+        url = (
+            f"{self.BASE_URL}/repos/"
+            f"{owner}/{repository}/contents/{path}"
+        )
+
+        params = {
+            "ref": branch,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=15.0,
+                headers=self.headers,
+            ) as client:
+                response = await client.get(
+                    url,
+                    params=params,
+                )
+
+        except httpx.TimeoutException as error:
+            raise ValueError(
+                "GitHub file request timed out"
+            ) from error
+
+        except httpx.RequestError as error:
+            raise ValueError(
+                "Unable to connect to GitHub API"
+            ) from error
+
+        if response.status_code == 404:
+            raise ValueError(
+                f"GitHub file not found: {path}"
+            )
+
+        if response.status_code == 403:
+            remaining = response.headers.get("X-RateLimit-Remaining")
+
+            if remaining == "0":
+                raise ValueError(
+                    "GitHub API rate limit exceeded"
+                )
+
+            raise ValueError(
+                "GitHub API access denied"
+            )
+
+        if response.status_code != 200:
+            raise ValueError(
+                f"GitHub file API request failed with status "
+                f"{response.status_code}"
+            )
+
+        data = response.json()
+
+        if data.get("type") != "file":
+            raise ValueError(
+                f"GitHub path is not a file: {path}"
+            )
+
+        content = data.get("content")
+
+        if not content:
+            return ""
+
+        decoded_content = base64.b64decode(content).decode(
+            "utf-8",
+            errors="replace",
+        )
+
+        return decoded_content
