@@ -1,6 +1,6 @@
 from app.ingestion.file_filter import should_include_file
 from app.services.github_service import GitHubService
-
+from app.ingestion.parsers import parse_file
 
 class IngestionService:
     def __init__(self):
@@ -56,10 +56,10 @@ class IngestionService:
             )
 
             processed_files.append(
-                {
-                    "path": path,
-                    "content": content,
-                }
+                parse_file(
+                    path=path,
+                    content=content,
+                )
             )
 
         return processed_files
