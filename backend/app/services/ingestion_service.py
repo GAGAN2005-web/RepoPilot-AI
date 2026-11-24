@@ -30,3 +30,36 @@ class IngestionService:
                 processable_files.append(item)
 
         return processable_files
+
+    async def get_file_contents(
+        self,
+        owner: str,
+        repository: str,
+        branch: str,
+    ) -> list[dict]:
+        files = await self.get_processable_files(
+            owner=owner,
+            repository=repository,
+            branch=branch,
+        )
+
+        processed_files = []
+
+        for file in files:
+            path = file["path"]
+
+            content = await self.github_service.get_file_content(
+                owner=owner,
+                repository=repository,
+                path=path,
+                branch=branch,
+            )
+
+            processed_files.append(
+                {
+                    "path": path,
+                    "content": content,
+                }
+            )
+
+        return processed_files
