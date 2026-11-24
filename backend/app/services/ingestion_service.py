@@ -1,6 +1,8 @@
 from app.ingestion.file_filter import should_include_file
 from app.services.github_service import GitHubService
 from app.ingestion.parsers import parse_file
+from app.ingestion.chunker import chunk_file
+
 
 class IngestionService:
     def __init__(self):
@@ -63,3 +65,24 @@ class IngestionService:
             )
 
         return processed_files
+
+    async def get_repository_chunks(
+        self,
+        owner: str,
+        repository: str,
+        branch: str,
+    ) -> list[dict]:
+        files = await self.get_file_contents(
+            owner=owner,
+            repository=repository,
+            branch=branch,
+        )
+
+        all_chunks = []
+
+        for file in files:
+            chunks = chunk_file(file)
+
+            all_chunks.extend(chunks)
+
+        return all_chunks
