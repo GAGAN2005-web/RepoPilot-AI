@@ -35,3 +35,7 @@ build/
 *.db
 *.sqlite
 *.sqlite3
+
+
+#chromaDB
+backend/chroma_db/
