@@ -5,9 +5,12 @@ class Settings(BaseSettings):
     app_name: str = "RepoPilot AI"
     app_version: str = "0.1.0"
     environment: str = "development"
+    
 
     github_token: str | None = None
     openai_api_key: str | None = None
+
+    embedding_model: str = "all-MiniLM-L6-v2"
 
     database_url: str = "sqlite:///./repopilot.db"
 

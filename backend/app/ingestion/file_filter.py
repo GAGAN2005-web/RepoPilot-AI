@@ -33,6 +33,7 @@ ALLOWED_EXTENSIONS = {
     ".env.example",
 }
 
+
 IGNORED_DIRECTORIES = {
     ".git",
     "node_modules",
@@ -50,14 +51,25 @@ IGNORED_DIRECTORIES = {
 }
 
 
-def should_include_file(path: str) -> bool:
-    file_path = Path(path)
+IGNORED_FILES = {
+    ".gitignore",
+}
 
-    for part in file_path.parts:
+
+def should_include_file(path: str) -> bool:
+    path_obj = Path(path)
+
+    if path_obj.name in IGNORED_FILES:
+        return False
+
+    for part in path_obj.parts:
         if part in IGNORED_DIRECTORIES:
             return False
 
-    if file_path.name == ".gitignore":
+    if path_obj.name == "":
+        return False
+
+    if path_obj.suffix.lower() in ALLOWED_EXTENSIONS:
         return True
 
-    return file_path.suffix.lower() in ALLOWED_EXTENSIONS
+    return False
