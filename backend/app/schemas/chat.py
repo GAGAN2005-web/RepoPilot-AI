@@ -13,6 +13,7 @@ class SourceReference(BaseModel):
     path: str
     language: str
     chunk_index: int
+    distance:float 
 
 
 class ChatResponse(BaseModel):

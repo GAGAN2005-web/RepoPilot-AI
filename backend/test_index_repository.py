@@ -32,6 +32,8 @@ async def main():
     # Step 3: Store everything in Chroma
     vector_store = VectorStore()
 
+    vector_store.delete_repository(repository_id=1)
+
     vector_store.add_chunks(
         chunks=chunks,
         embeddings=embeddings,

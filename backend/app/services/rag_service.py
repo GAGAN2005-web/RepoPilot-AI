@@ -15,7 +15,7 @@ class RAGService:
         self,
         question: str,
         repository_id: int,
-        top_k: int = 5,
+        top_k: int = 3,
     ) -> dict:
 
         # 1. Convert question into an embedding
@@ -53,15 +53,17 @@ class RAGService:
 
         # 6. Extract source information
         metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
 
         sources = []
 
-        for metadata in metadatas:
+        for metadata, distance in zip(metadatas, distances):
             sources.append(
                 {
                     "path": metadata.get("path"),
                     "language": metadata.get("language"),
                     "chunk_index": metadata.get("chunk_index"),
+                    "distance": round(distance, 4),
                 }
             )
 

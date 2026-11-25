@@ -15,6 +15,11 @@ class VectorStore:
             name=collection_name
         )
 
+    def delete_repository(self, repository_id: int)-> None:
+        self.collection.delete(
+            where={"repository_id":repository_id}
+        )
+
     def add_chunks(
         self,
         chunks: list[dict],
@@ -60,11 +65,10 @@ class VectorStore:
 
     def search(
         self,
-        query_embedding: list[float],
-        top_k: int = 5,
+        query_embedding,
+        top_k=5,
         repository_id: int | None = None,
-    ) -> dict:
-
+    ):
         where = None
 
         if repository_id is not None:
@@ -76,4 +80,9 @@ class VectorStore:
             query_embeddings=[query_embedding],
             n_results=top_k,
             where=where,
+            include=[
+                "documents",
+                "metadatas",
+                "distances",
+            ],
         )
