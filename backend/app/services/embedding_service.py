@@ -1,12 +1,20 @@
-from sentence_transformers import SentenceTransformer
+from google import genai
 
 from app.core.configure import settings
 
 
 class EmbeddingService:
+    MODEL_NAME = "gemini-embedding-001"
+
     def __init__(self):
-        self.model_name = settings.embedding_model
-        self.model = SentenceTransformer(self.model_name)
+        if not settings.gemini_api_key:
+            raise ValueError(
+                "GEMINI_API_KEY is not configured."
+            )
+
+        self.client = genai.Client(
+            api_key=settings.gemini_api_key
+        )
 
     def create_embedding(self, text: str) -> list[float]:
         if not text.strip():
@@ -14,12 +22,12 @@ class EmbeddingService:
                 "Cannot create an embedding for empty text."
             )
 
-        embedding = self.model.encode(
-            text,
-            convert_to_numpy=True,
+        response = self.client.models.embed_content(
+            model=self.MODEL_NAME,
+            contents=text,
         )
 
-        return embedding.tolist()
+        return response.embeddings[0].values
 
     def create_embeddings(
         self,
@@ -28,9 +36,12 @@ class EmbeddingService:
         if not texts:
             return []
 
-        embeddings = self.model.encode(
-            texts,
-            convert_to_numpy=True,
+        response = self.client.models.embed_content(
+            model=self.MODEL_NAME,
+            contents=texts,
         )
 
-        return embeddings.tolist()
+        return [
+            embedding.values
+            for embedding in response.embeddings
+        ]

@@ -30,6 +30,7 @@ class RepositoryRequest(BaseModel):
 
 
 class RepositoryInfo(BaseModel):
+    id:int
     owner: str
     name: str
     url: str

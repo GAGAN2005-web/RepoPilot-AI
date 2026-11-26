@@ -1,16 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.db.database import get_db
 from app.schemas.repository import RepositoryRequest, RepositoryInfo
-from app.services.github_service import GitHubService
+from app.services.repository_service import RepositoryService
 
 
 router = APIRouter(prefix="/repositories", tags=["Repositories"])
 
-github_service = GitHubService()
+repository_service = RepositoryService()
 
 
 @router.post("", response_model=RepositoryInfo)
-async def get_repository(request: RepositoryRequest):
+async def get_repository(
+    request: RepositoryRequest,
+    db: Session = Depends(get_db),
+):
     parts = request.url.rstrip("/").split("/")
 
     owner = parts[-2]
@@ -20,11 +25,23 @@ async def get_repository(request: RepositoryRequest):
     if name.endswith(".git"):
         name = name[:-4]
 
+    # Normalize the URL so the same repository is not stored twice
+    normalized_url = f"https://github.com/{owner}/{name}"
+
     try:
-        repository = await github_service.get_repository(
+        repository = await repository_service.register_repository(
+            db=db,
             owner=owner,
             repository=name,
+            url=normalized_url,
         )
+
+        # Index the repository only when it has not already been completed.
+        if repository.indexing_status != "completed":
+            await repository_service.index_repository(
+                db=db,
+                repository=repository,
+            )
 
     except ValueError as error:
         message = str(error)
@@ -47,12 +64,13 @@ async def get_repository(request: RepositoryRequest):
         ) from error
 
     return RepositoryInfo(
-        owner=repository["owner"]["login"],
-        name=repository["name"],
-        url=repository["html_url"],
-        description=repository["description"],
-        language=repository["language"],
-        stars=repository["stargazers_count"],
-        forks=repository["forks_count"],
-        default_branch=repository["default_branch"],
+        id=repository.id,
+        owner=repository.owner,
+        name=repository.name,
+        url=repository.url,
+        description=repository.description,
+        language=repository.language,
+        stars=repository.stars,
+        forks=repository.forks,
+        default_branch=repository.default_branch,
     )

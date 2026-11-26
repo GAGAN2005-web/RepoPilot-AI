@@ -1,37 +1,39 @@
-import httpx
+from google import genai
+
+from app.core.configure import settings
 
 
 class LLMService:
-    OLLAMA_URL = "http://localhost:11434/api/generate"
-    MODEL_NAME = "qwen2.5-coder:3b"
+    MODEL_NAME = "gemini-3.5-flash-lite"
+
+    def __init__(self):
+        if not settings.gemini_api_key:
+            raise ValueError(
+                "GEMINI_API_KEY is not configured."
+            )
+
+        self.client = genai.Client(
+            api_key=settings.gemini_api_key
+        )
 
     async def generate(self, prompt: str) -> str:
         if not prompt.strip():
             raise ValueError("Prompt cannot be empty.")
 
-        payload = {
-            "model": self.MODEL_NAME,
-            "prompt": prompt,
-            "stream": False,
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                response = await client.post(
-                    self.OLLAMA_URL,
-                    json=payload,
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=prompt,
+            )
+
+            if not response.text:
+                raise RuntimeError(
+                    "Gemini returned an empty response."
                 )
 
-            response.raise_for_status()
+            return response.text
 
-            data = response.json()
-
-            return data["response"]
-
-        except httpx.TimeoutException:
-            raise RuntimeError("Ollama request timed out.")
-
-        except httpx.HTTPError as exc:
+        except Exception as exc:
             raise RuntimeError(
-                f"Failed to communicate with Ollama: {exc}"
+                f"Failed to communicate with Gemini: {exc}"
             )

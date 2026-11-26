@@ -9,6 +9,10 @@ venv/
 
 # Environment variables
 .env
+.env.*
+
+# Keep example environment file
+!.env.example
 
 # IDE
 .vscode/
@@ -36,6 +40,9 @@ build/
 *.sqlite
 *.sqlite3
 
-
-#chromaDB
+# ChromaDB
+chroma_db/
 backend/chroma_db/
+
+# Node
+node_modules/
