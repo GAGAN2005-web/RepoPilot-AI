@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from app.services.ingestion_service import IngestionService
 
 from app.db.repositories import (
-    create_repository,
     get_repository_by_url,
     update_indexing_status,
 )
+
+from app.db.models import Repository
 
 from app.services.github_service import GitHubService
 
@@ -36,17 +37,23 @@ class RepositoryService:
             repository=repository,
         )
 
-        return create_repository(
-            db=db,
-            owner=repository_data.owner,
-            name=repository_data.name,
-            url=repository_data.url,
-            description=repository_data.description,
-            language=repository_data.language,
-            stars=repository_data.stars,
-            forks=repository_data.forks,
-            default_branch=repository_data.default_branch,
+        repository = Repository(
+            owner=repository_data["owner"]["login"],
+            name=repository_data["name"],
+            url=repository_data["html_url"],
+            description=repository_data.get("description"),
+            language=repository_data.get("language"),
+            stars=repository_data.get("stargazers_count", 0),
+            forks=repository_data.get("forks_count", 0),
+            default_branch=repository_data["default_branch"],
+            indexing_status="pending",
         )
+
+        db.add(repository)
+        db.commit()
+        db.refresh(repository)
+
+        return repository
 
     def mark_processing(
         self,
