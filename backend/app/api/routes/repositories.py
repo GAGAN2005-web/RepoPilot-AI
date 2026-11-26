@@ -37,11 +37,11 @@ async def get_repository(
         )
 
         # Index the repository only when it has not already been completed.
-        if repository.indexing_status != "completed":
-            await repository_service.index_repository(
-                db=db,
-                repository=repository,
-            )
+        
+        await repository_service.index_repository(
+            db=db,
+            repository=repository,
+        )
 
     except ValueError as error:
         message = str(error)

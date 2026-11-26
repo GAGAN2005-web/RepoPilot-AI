@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.services.ingestion_service import IngestionService
+from app.services.embedding_service import EmbeddingService
+from app.rag.vector_store import VectorStore
 
 from app.db.repositories import (
     get_repository_by_url,
@@ -8,7 +10,6 @@ from app.db.repositories import (
 )
 
 from app.db.models import Repository
-
 from app.services.github_service import GitHubService
 
 
@@ -16,6 +17,8 @@ class RepositoryService:
     def __init__(self):
         self.github_service = GitHubService()
         self.ingestion_service = IngestionService()
+        self.embedding_service = EmbeddingService()
+        self.vector_store = VectorStore()
 
     async def register_repository(
         self,
@@ -99,12 +102,33 @@ class RepositoryService:
         )
 
         try:
+            # Step 1: Get repository chunks
             chunks = await self.ingestion_service.get_repository_chunks(
                 owner=repository.owner,
                 repository=repository.name,
                 branch=repository.default_branch,
             )
 
+            # Step 2: Create embeddings
+            texts = [chunk["content"] for chunk in chunks]
+
+            embeddings = self.embedding_service.create_embeddings(
+                texts
+            )
+
+            # Step 3: Remove any old vectors
+            self.vector_store.delete_repository(
+                repository_id=repository.id
+            )
+
+            # Step 4: Store chunks + embeddings in Chroma
+            self.vector_store.add_chunks(
+                chunks=chunks,
+                embeddings=embeddings,
+                repository_id=repository.id,
+            )
+
+            # Step 5: Mark indexing as completed
             self.mark_completed(
                 db=db,
                 repository=repository,
