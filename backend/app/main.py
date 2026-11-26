@@ -6,7 +6,10 @@ from app.api.routes.repositories import router as repository_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.conversations import router as conversations_router
 from app.api.routes.agent_chat import router as agent_chat_router
+
 from app.core.configure import settings
+from app.db.database import Base, engine
+from app.db import models
 
 
 app = FastAPI(
@@ -30,6 +33,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def create_database_tables():
+    Base.metadata.create_all(bind=engine)
 
 
 app.include_router(chat_router)
